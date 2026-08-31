@@ -77,7 +77,7 @@ kein Label mit Trackingnummer existiert. Diese Zusicherung ist in
 - [x] 4 Auth und Rollen (ADMIN / PACKER / VIEWER)
 - [~] 5 Shopify: HMAC, Bestell-Mapping, Admin-API-Client (Produkt-Sync folgt)
 - [x] 6 Webhook-Endpunkt mit HMAC-Prüfung und Idempotenz
-- [ ] 7 Auftragsliste und Desktop-Dashboard
+- [x] 7 Lager-Dashboard: Spalten, Tageskennzahlen, Selbstaktualisierung
 - [ ] 8 Lagerplatzverwaltung
 - [ ] 9 Picking-Scanner (mobil)
 - [ ] 10 Packanweisungen mit Pflichtbestätigung
@@ -86,6 +86,11 @@ kein Label mit Trackingnummer existiert. Diese Zusicherung ist in
 - [ ] 13 Versand: Carrier-Adapter, Label, Tracking
 - [ ] 14 Dashboard-Kennzahlen und Bestandshistorie
 - [ ] 15 End-to-End-Test über den kompletten Ablauf
+
+## Betrieb
+
+Hosting, Kiosk-Einrichtung auf dem Mini-PC im Lager und die Handys der
+Mitarbeitenden: siehe [BETRIEB.md](./BETRIEB.md).
 
 ## Rollen und Rechte
 

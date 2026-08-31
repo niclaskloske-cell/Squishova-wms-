@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/domain/auth/permissions";
 import { abmelden } from "./anmelden/actions";
@@ -13,7 +14,12 @@ export default async function StartSeite() {
   const user = await requireUser();
 
   const bereiche = [
-    { titel: "Aufträge", pfad: "/auftraege", recht: "auftrag.lesen" as const },
+    {
+      titel: "Lager-Dashboard",
+      pfad: "/auftraege",
+      recht: "auftrag.lesen" as const,
+      fertig: true,
+    },
     { titel: "Picken", pfad: "/scan", recht: "auftrag.picken" as const },
     { titel: "Verpackungsmaterial", pfad: "/material", recht: "material.lesen" as const },
     { titel: "Lagerplätze", pfad: "/lagerplaetze", recht: "lagerplatz.lesen" as const },
@@ -72,9 +78,17 @@ export default async function StartSeite() {
               padding: "var(--abstand)",
             }}
           >
-            <h2 style={{ fontSize: 18, marginBottom: 4 }}>{bereich.titel}</h2>
+            <h2 style={{ fontSize: 18, marginBottom: 4 }}>
+              {"fertig" in bereich && bereich.fertig ? (
+                <Link href={bereich.pfad}>{bereich.titel}</Link>
+              ) : (
+                bereich.titel
+              )}
+            </h2>
             <p style={{ margin: 0, color: "var(--farbe-text-leise)" }}>
-              Wird im nächsten Schritt umgesetzt.
+              {"fertig" in bereich && bereich.fertig
+                ? "Offene Aufträge, Kennzahlen des Tages."
+                : "Wird im nächsten Schritt umgesetzt."}
             </p>
           </article>
         ))}
