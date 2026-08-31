@@ -14,20 +14,33 @@ und Versand.
 | Logging | Pino | Strukturiert, mit Redaction für Secrets |
 | Tests | Vitest (Unit) + Playwright (E2E, folgt) | Domain-Logik ist I/O-frei und damit direkt testbar |
 
-## Einrichtung
+## Schnellstart
+
+Auf dem Server im Lager (oder jedem Linux-Rechner mit Docker):
+
+```bash
+git clone https://github.com/niclaskloske-cell/Squishova-wms- squishova-wms
+cd squishova-wms
+./start.sh
+```
+
+Das war alles. Das Skript erzeugt die Zugangsdaten, startet Anwendung und
+Datenbank, legt den Admin-Benutzer an und nennt am Ende Adresse und Passwort.
+
+Fehlt Docker, sagt das Skript, wie du es installierst.
+
+Danach im Browser: **http://localhost:3000**
+
+### Ohne Docker entwickeln
+
+Node 20+ und eine PostgreSQL-Datenbank vorausgesetzt:
 
 ```bash
 npm install
-cp .env.example .env      # Werte eintragen
-npm run db:migrate        # Schema in die Datenbank bringen
-npm run db:seed           # Lagerplätze A01–B02 und Verpackungsmaterial
+cp .env.example .env      # DATABASE_URL und AUTH_SECRET eintragen
+npm run db:migrate
+SEED_PASSWORD='lokalespasswort' npm run db:seed
 npm run dev
-```
-
-Für Testbenutzer (nur lokal):
-
-```bash
-SEED_PASSWORD='einlokalespasswort' npm run db:seed
 ```
 
 ## Befehle

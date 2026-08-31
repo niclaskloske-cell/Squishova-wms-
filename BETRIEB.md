@@ -21,6 +21,29 @@ außen auf, es muss **kein Port im Router geöffnet** werden.
 
 ## 1. Anwendung auf dem Mini-PC installieren
 
+**Der kurze Weg:**
+
+```bash
+curl -fsSL https://get.docker.com | sh     # nur beim ersten Mal
+sudo usermod -aG docker $USER              # danach ab- und wieder anmelden
+
+git clone https://github.com/niclaskloske-cell/Squishova-wms- squishova-wms
+cd squishova-wms
+./start.sh
+```
+
+`start.sh` erledigt den Rest: Zugangsdaten erzeugen, Container bauen und
+starten, Migrationen anwenden, Admin-Benutzer anlegen. Am Ende nennt es dir
+Adresse und Passwort.
+
+Das WMS läuft dann unter `http://localhost:3000` — erreichbar in deinem Netz,
+noch nicht aus dem Internet. Für den Anfang reicht das: Shopify anzubinden ist
+ein eigener Schritt (Abschnitt 4) und kann warten.
+
+<details>
+<summary>Die Einzelschritte, falls du sie von Hand gehen willst</summary>
+
+
 Kosten: 0 €. Die Anwendung und die Datenbank laufen in Docker-Containern auf
 deinem eigenen Server, eine HTTPS-Adresse für Shopify kommt über einen Tunnel —
 ohne offenen Port im Router.
@@ -146,6 +169,8 @@ Wenn du irgendwann doch hosten willst: Datenbank mit `pg_dump` sichern, beim
 Hoster einspielen, `DATABASE_URL` und `AUTH_SECRET` setzen. Das mitgelieferte
 `render.yaml` und das `Dockerfile` funktionieren unverändert. Die Anwendung ist
 an nichts gebunden außer Node und PostgreSQL.
+
+</details>
 
 ## 2. Mini-PC im Lager einrichten
 
