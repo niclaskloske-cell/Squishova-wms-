@@ -78,7 +78,7 @@ kein Label mit Trackingnummer existiert. Diese Zusicherung ist in
 - [~] 5 Shopify: HMAC, Bestell-Mapping, Admin-API-Client (Produkt-Sync folgt)
 - [x] 6 Webhook-Endpunkt mit HMAC-Prüfung und Idempotenz
 - [x] 7 Lager-Dashboard: Spalten, Tageskennzahlen, Selbstaktualisierung
-- [ ] 8 Lagerplatzverwaltung
+- [x] 8 Lagerplatzverwaltung und Etikettendruck
 - [ ] 9 Picking-Scanner (mobil)
 - [ ] 10 Packanweisungen mit Pflichtbestätigung
 - [ ] 11 Verpackungsmaterial und Verbrauchserfassung

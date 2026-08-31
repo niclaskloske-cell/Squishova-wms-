@@ -22,7 +22,18 @@ export default async function StartSeite() {
     },
     { titel: "Picken", pfad: "/scan", recht: "auftrag.picken" as const },
     { titel: "Verpackungsmaterial", pfad: "/material", recht: "material.lesen" as const },
-    { titel: "Lagerplätze", pfad: "/lagerplaetze", recht: "lagerplatz.lesen" as const },
+    {
+      titel: "Lagerplätze",
+      pfad: "/lagerplaetze",
+      recht: "lagerplatz.lesen" as const,
+      fertig: true,
+    },
+    {
+      titel: "Etiketten drucken",
+      pfad: "/etiketten",
+      recht: "lagerplatz.lesen" as const,
+      fertig: true,
+    },
   ].filter((bereich) => can(user, bereich.recht));
 
   return (
