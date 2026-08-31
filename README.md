@@ -89,8 +89,8 @@ kein Label mit Trackingnummer existiert. Diese Zusicherung ist in
 
 ## Betrieb
 
-Hosting, Kiosk-Einrichtung auf dem Mini-PC im Lager und die Handys der
-Mitarbeitenden: siehe [BETRIEB.md](./BETRIEB.md).
+Installation auf dem eigenen Mini-PC, Kiosk-Einrichtung, Tunnel für Shopify,
+Backups und die Handys der Mitarbeitenden: siehe [BETRIEB.md](./BETRIEB.md).
 
 ## Rollen und Rechte
 

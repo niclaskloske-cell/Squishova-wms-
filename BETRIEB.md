@@ -1,73 +1,151 @@
 # Betrieb
 
-Wie das WMS in den Lagerbetrieb kommt: gehostete Anwendung, Kiosk-Anzeige im
-Lager, Handys der Mitarbeitenden.
+Wie das WMS in den Lagerbetrieb kommt: Anwendung und Datenbank auf dem eigenen
+Mini-PC, Kiosk-Anzeige im Lager, Handys der Mitarbeitenden.
 
 ## Überblick
 
 ```
-Shopify ──Webhook──►  gehostete App  ◄──── Handys (PWA, Scanner)
-                       + Postgres
-                            ▲
-                            └──────────── Mini-PC im Lager (nur Anzeige)
+                    ┌──────────────────────────────┐
+Shopify ──Webhook──►│  Mini-PC im Lager            │◄─── Handys (PWA, Scanner)
+   (via Tunnel)     │  Docker: WMS + PostgreSQL    │
+                    │  Chromium im Kiosk-Modus     │
+                    └──────────────────────────────┘
 ```
 
-Die Anwendung läuft **nicht** auf dem Mini-PC. Shopify braucht eine öffentlich
-erreichbare HTTPS-Adresse für Webhooks, und wenn der Mini-PC aus ist, sollen
-trotzdem Bestellungen ankommen. Der Mini-PC ist ein reines Anzeigegerät und darf
-entsprechend schwach sein — ein Raspberry Pi 5 reicht.
+Der Mini-PC macht beides: er betreibt die Anwendung **und** zeigt das Dashboard
+an. Die Last ist gering, das stört sich nicht.
 
-## 1. Anwendung hosten
+Shopify erreicht ihn über einen Tunnel — der Mini-PC baut die Verbindung nach
+außen auf, es muss **kein Port im Router geöffnet** werden.
 
-Das Repository bringt alles Nötige mit: einen Render-Blueprint, ein Dockerfile
-und einen Health-Check. Du musst nichts konfigurieren, nur verbinden.
+## 1. Anwendung auf dem Mini-PC installieren
 
-### Weg A: Render (empfohlen, weil vollständig vorbereitet)
+Kosten: 0 €. Die Anwendung und die Datenbank laufen in Docker-Containern auf
+deinem eigenen Server, eine HTTPS-Adresse für Shopify kommt über einen Tunnel —
+ohne offenen Port im Router.
 
-1. Auf [render.com](https://render.com) mit GitHub anmelden.
-2. **New → Blueprint** und dieses Repository auswählen.
-3. Render liest `render.yaml` und legt beides an: den Webdienst *und* die
-   PostgreSQL-Datenbank. `DATABASE_URL` wird automatisch verbunden,
-   `AUTH_SECRET` erzeugt Render selbst als Zufallswert.
-4. **Apply** klicken und warten. Der erste Build dauert einige Minuten.
+### Docker installieren
 
-Migrationen laufen automatisch vor jedem Start (`preDeployCommand`). Du musst
-also nach einem Update nichts von Hand nachziehen.
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER      # danach einmal ab- und wieder anmelden
+```
 
-Kosten: Webdienst und Datenbank zusammen rund 14 $/Monat im Starter-Tarif.
-Der kostenlose Tarif reicht zum Ausprobieren, schläft aber nach Leerlauf ein —
-für ein WMS, das Shopify-Webhooks entgegennehmen muss, ist das ungeeignet.
+### Projekt holen und einrichten
 
-### Weg B: Railway, Fly.io oder eigener Server
+```bash
+git clone https://github.com/niclaskloske-cell/Squishova-wms- squishova-wms
+cd squishova-wms
+cp .env.docker.example .env
+```
 
-Das `Dockerfile` läuft überall. Nötig sind eine PostgreSQL-Datenbank und zwei
-Umgebungsvariablen:
+In der `.env` zwei Werte eintragen — beide erzeugst du dir selbst:
 
-| Variable | Wert |
-|---|---|
-| `DATABASE_URL` | Verbindungsstring der Datenbank |
-| `AUTH_SECRET` | `openssl rand -base64 32` |
+```bash
+openssl rand -base64 24    # für POSTGRES_PASSWORD
+openssl rand -base64 32    # für AUTH_SECRET
+```
 
-Vor dem Start einmal `npm run db:deploy` ausführen — das wendet vorhandene
-Migrationen an und erzeugt keine neuen.
+Starten:
+
+```bash
+docker compose up -d
+```
+
+Beim ersten Start baut Docker das Image (dauert ein paar Minuten), wartet auf
+die Datenbank und wendet die Migrationen an. Danach läuft das WMS auf
+`http://localhost:3000`.
+
+Prüfen, ob alles steht:
+
+```bash
+curl localhost:3000/api/health     # erwartet: {"status":"ok",...}
+docker compose ps                  # beide Dienste "healthy"
+docker compose logs -f wms         # bei Problemen
+```
 
 ### Ersten Benutzer anlegen
 
 Einmalig, mit einem selbst gewählten Passwort:
 
 ```bash
-SEED_PASSWORD='einstarkespasswort' npm run db:seed
+docker compose exec wms sh -c "SEED_PASSWORD='deinPasswort' npx tsx prisma/seed.ts"
 ```
 
-Das legt `admin@`, `packer@` und `viewer@squishova.de` an. Passwort danach in
-der Anwendung ändern und `SEED_PASSWORD` nirgends dauerhaft hinterlegen.
+Danach das Passwort in der Anwendung ändern.
 
-### Health-Check
+### Von außen erreichbar machen (für Shopify)
 
-`/api/health` prüft auch die Datenbankverbindung und antwortet mit **503**,
-wenn sie fehlt. Der Hoster erkennt dadurch eine Anwendung, die zwar läuft,
-aber nicht arbeiten kann — ein Check, der nur „200 OK" sagt, würde genau
-diesen Fall verschweigen.
+Shopify muss die Webhooks zustellen können. Dafür **kein Port im Router** —
+stattdessen Tailscale Funnel, kostenlos und ohne eigene Domain:
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+sudo tailscale funnel --bg 3000
+```
+
+Der letzte Befehl nennt dir die feste HTTPS-Adresse, etwa
+`https://minipc.deintailnet.ts.net`. Die bleibt gleich, auch nach einem Neustart.
+
+Voraussetzung: In der [Tailscale-Verwaltung](https://login.tailscale.com/admin/dns)
+müssen **HTTPS-Zertifikate** aktiviert und für diesen Rechner **Funnel** erlaubt
+sein. Tailscale sagt dir beim Ausführen, falls etwas fehlt.
+
+### Updates einspielen
+
+```bash
+git pull && docker compose up -d --build
+```
+
+Migrationen laufen dabei automatisch mit.
+
+### Backups — bitte nicht überspringen
+
+Beim Selbst-Hosten sind Backups deine Aufgabe. Skript anlegen:
+
+```bash
+mkdir -p ~/wms-backups
+cat > ~/wms-backup.sh <<'EOF'
+#!/bin/sh
+cd ~/squishova-wms || exit 1
+docker compose exec -T db pg_dump -U wms squishova_wms \
+  | gzip > ~/wms-backups/wms-$(date +%F).sql.gz
+# Älter als 30 Tage aufräumen
+find ~/wms-backups -name 'wms-*.sql.gz' -mtime +30 -delete
+EOF
+chmod +x ~/wms-backup.sh
+```
+
+Täglich um 3 Uhr per Cron (`crontab -e`):
+
+```
+0 3 * * * /bin/sh $HOME/wms-backup.sh
+```
+
+**Probiere einmal aus, ob sich ein Backup zurückspielen lässt.** Ein
+ungetestetes Backup ist keins:
+
+```bash
+gunzip -c ~/wms-backups/wms-JJJJ-MM-TT.sql.gz \
+  | docker compose exec -T db psql -U wms -d squishova_wms
+```
+
+### Was du dir damit einhandelst
+
+- **Der Mini-PC muss laufen.** Ist er aus, kommen keine Bestellungen an.
+  Shopify stellt Webhooks rund 48 Stunden lang erneut zu, das federt kurze
+  Ausfälle ab — aber ein Wochenende ohne Strom nicht.
+- **Updates von System und Docker** liegen bei dir.
+- Dafür verlassen deine Kunden- und Bestelldaten dein Lager nicht.
+
+### Später umziehen
+
+Wenn du irgendwann doch hosten willst: Datenbank mit `pg_dump` sichern, beim
+Hoster einspielen, `DATABASE_URL` und `AUTH_SECRET` setzen. Das mitgelieferte
+`render.yaml` und das `Dockerfile` funktionieren unverändert. Die Anwendung ist
+an nichts gebunden außer Node und PostgreSQL.
 
 ## 2. Mini-PC im Lager einrichten
 

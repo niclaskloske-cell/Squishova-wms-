@@ -1,0 +1,57 @@
+# Squishova WMS auf dem eigenen Server (Mini-PC im Lager).
+#
+# Starten:   docker compose up -d
+# Logs:      docker compose logs -f wms
+# Aktualisieren: git pull && docker compose up -d --build
+#
+# Die Datenbank liegt in einem benannten Volume und ueberlebt damit jedes
+# Neubauen des Containers. Nur ein "docker compose down -v" wuerde sie
+# loeschen — deshalb steht das -v hier bewusst nirgends.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in .env}
+      POSTGRES_DB: squishova_wms
+    volumes:
+      - wms-db:/var/lib/postgresql/data
+    healthcheck:
+      # Die Anwendung startet erst, wenn die Datenbank wirklich antwortet —
+      # sonst schlaegt die Migration beim ersten Hochfahren fehl.
+      test: ["CMD-SHELL", "pg_isready -U wms -d squishova_wms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Die Datenbank ist absichtlich NICHT nach aussen veroeffentlicht.
+    # Sie ist nur ueber das interne Docker-Netz erreichbar.
+
+  wms:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://wms:${POSTGRES_PASSWORD}@db:5432/squishova_wms?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET fehlt in .env}
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      # Nur auf localhost gebunden: von aussen kommt man ausschliesslich
+      # ueber den Tunnel herein, nicht direkt an den Port.
+      - "127.0.0.1:3000:3000"
+    # Migrationen vor jedem Start. db:deploy wendet nur vorhandene
+    # Migrationen an und erzeugt keine neuen.
+    command: sh -c "npx prisma migrate deploy && node server.js"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  wms-db:
