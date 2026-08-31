@@ -19,33 +19,55 @@ entsprechend schwach sein — ein Raspberry Pi 5 reicht.
 
 ## 1. Anwendung hosten
 
-Nötig sind eine Node-Umgebung (≥ 20) und eine PostgreSQL-Datenbank. Bei Railway,
-Render oder Fly.io kommt beides zusammen, inklusive HTTPS-Zertifikat.
+Das Repository bringt alles Nötige mit: einen Render-Blueprint, ein Dockerfile
+und einen Health-Check. Du musst nichts konfigurieren, nur verbinden.
 
-Umgebungsvariablen laut `.env.example` setzen. Zwingend:
+### Weg A: Render (empfohlen, weil vollständig vorbereitet)
+
+1. Auf [render.com](https://render.com) mit GitHub anmelden.
+2. **New → Blueprint** und dieses Repository auswählen.
+3. Render liest `render.yaml` und legt beides an: den Webdienst *und* die
+   PostgreSQL-Datenbank. `DATABASE_URL` wird automatisch verbunden,
+   `AUTH_SECRET` erzeugt Render selbst als Zufallswert.
+4. **Apply** klicken und warten. Der erste Build dauert einige Minuten.
+
+Migrationen laufen automatisch vor jedem Start (`preDeployCommand`). Du musst
+also nach einem Update nichts von Hand nachziehen.
+
+Kosten: Webdienst und Datenbank zusammen rund 14 $/Monat im Starter-Tarif.
+Der kostenlose Tarif reicht zum Ausprobieren, schläft aber nach Leerlauf ein —
+für ein WMS, das Shopify-Webhooks entgegennehmen muss, ist das ungeeignet.
+
+### Weg B: Railway, Fly.io oder eigener Server
+
+Das `Dockerfile` läuft überall. Nötig sind eine PostgreSQL-Datenbank und zwei
+Umgebungsvariablen:
 
 | Variable | Wert |
 |---|---|
-| `DATABASE_URL` | Verbindungsstring der Postgres-Instanz |
-| `AUTH_SECRET` | `openssl rand -base64 32` — mindestens 32 Zeichen |
+| `DATABASE_URL` | Verbindungsstring der Datenbank |
+| `AUTH_SECRET` | `openssl rand -base64 32` |
 
-Beim Deployment ausführen:
+Vor dem Start einmal `npm run db:deploy` ausführen — das wendet vorhandene
+Migrationen an und erzeugt keine neuen.
 
-```bash
-npm ci
-npm run db:deploy     # Migrationen anwenden (nicht db:migrate in Produktion)
-npm run build
-npm start
-```
+### Ersten Benutzer anlegen
 
-Der erste Admin-Benutzer wird einmalig über den Seed angelegt:
+Einmalig, mit einem selbst gewählten Passwort:
 
 ```bash
 SEED_PASSWORD='einstarkespasswort' npm run db:seed
 ```
 
-Danach das Passwort in der Anwendung ändern und `SEED_PASSWORD` nirgends
-dauerhaft hinterlegen.
+Das legt `admin@`, `packer@` und `viewer@squishova.de` an. Passwort danach in
+der Anwendung ändern und `SEED_PASSWORD` nirgends dauerhaft hinterlegen.
+
+### Health-Check
+
+`/api/health` prüft auch die Datenbankverbindung und antwortet mit **503**,
+wenn sie fehlt. Der Hoster erkennt dadurch eine Anwendung, die zwar läuft,
+aber nicht arbeiten kann — ein Check, der nur „200 OK" sagt, würde genau
+diesen Fall verschweigen.
 
 ## 2. Mini-PC im Lager einrichten
 

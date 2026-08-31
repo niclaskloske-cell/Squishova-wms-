@@ -1,0 +1,36 @@
+# Render Blueprint — legt Webdienst und Datenbank in einem Rutsch an.
+# Bei Render: New → Blueprint → dieses Repository auswählen.
+services:
+  - type: web
+    name: squishova-wms
+    runtime: node
+    plan: starter
+    region: frankfurt
+    branch: main
+
+    buildCommand: npm ci && npx prisma generate && npm run build
+    # Migrationen laufen vor jedem Start. db:deploy wendet nur vorhandene
+    # Migrationen an und erzeugt keine neuen — das Richtige fuer Produktion.
+    preDeployCommand: npm run db:deploy
+    startCommand: npm start
+
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: squishova-wms-db
+          property: connectionString
+      - key: AUTH_SECRET
+        # Render erzeugt einen sicheren Zufallswert und zeigt ihn nie im Klartext.
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+
+databases:
+  - name: squishova-wms-db
+    databaseName: squishova_wms
+    plan: basic-256mb
+    region: frankfurt
