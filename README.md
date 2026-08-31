@@ -4,12 +4,6 @@ Warehouse Management System für den Squishova-Shop: Shopify-Anbindung,
 Scanner-gestütztes Picking, Packanweisungen, Verpackungsmaterial-Verwaltung
 und Versand.
 
-> **Hinweis:** Dieses Projekt liegt vorübergehend im Repository
-> `diamond-events` unter `wms/`, weil das eigene Repository noch nicht
-> angelegt werden konnte. Es ist vollständig eigenständig — es teilt sich
-> keinen Code mit der Diamond-Events-Anwendung und zieht später als Wurzel in
-> ein eigenes Repository um.
-
 ## Stack
 
 | Bereich | Wahl | Grund |
