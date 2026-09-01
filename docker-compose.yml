@@ -45,7 +45,7 @@ services:
       - "127.0.0.1:3000:3000"
     # Migrationen vor jedem Start. db:deploy wendet nur vorhandene
     # Migrationen an und erzeugt keine neuen.
-    command: sh -c "npx prisma migrate deploy && node server.js"
+    command: sh -c "node_modules/.bin/prisma migrate deploy && node server.js"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s

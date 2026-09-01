@@ -86,7 +86,7 @@ benutzer=$(docker compose exec -T db psql -U wms -d squishova_wms -tAc \
 if [ "${benutzer//[[:space:]]/}" = "0" ]; then
   passwort="$(openssl rand -base64 12 | tr -d '/+=')"
   sage "Lege Admin-Benutzer an ..."
-  docker compose exec -T -e SEED_PASSWORD="$passwort" wms npx tsx prisma/seed.ts >/dev/null
+  docker compose exec -T -e SEED_PASSWORD="$passwort" wms node prisma/seed.cjs >/dev/null
   ZUGANG="
   Benutzer: admin@squishova.de
   Passwort: $passwort

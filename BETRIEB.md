@@ -93,7 +93,7 @@ docker compose logs -f wms         # bei Problemen
 Einmalig, mit einem selbst gewählten Passwort:
 
 ```bash
-docker compose exec wms sh -c "SEED_PASSWORD='deinPasswort' npx tsx prisma/seed.ts"
+docker compose exec -e SEED_PASSWORD='deinPasswort' wms node prisma/seed.cjs
 ```
 
 Danach das Passwort in der Anwendung ändern.
