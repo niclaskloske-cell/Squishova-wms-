@@ -18,8 +18,8 @@
   .summary small { color:var(--muted); display:block; }
   .summary b { font-size:1.15rem; }
   .red { color:var(--red); } .green { color:var(--green); }
-  form { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  form .full { grid-column:1/-1; }
+  .form { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .form .full { grid-column:1/-1; }
   input, select, button { font:inherit; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); width:100%; }
   button { cursor:pointer; background:var(--accent); color:#fff; border:none; font-weight:600; }
   button.ghost { background:transparent; color:var(--muted); border:1px solid var(--border); width:auto; padding:6px 10px; font-weight:400; }
@@ -47,14 +47,15 @@
   </section>
 
   <section class="card">
-    <form id="form">
+    <div id="form" class="form">
       <input class="full" id="name" placeholder="Gläubiger / Bezeichnung (z. B. Kreditkarte)" required>
       <input id="total" type="number" step="0.01" min="0" placeholder="Gesamtbetrag €" required>
       <input id="monthly" type="number" step="0.01" min="0" placeholder="Monatsrate € (optional)">
       <input id="due" type="date" title="Fällig am">
       <input id="rate" type="number" step="0.01" min="0" placeholder="Zinssatz % (optional)">
-      <button class="full" type="submit">Schuld hinzufügen</button>
-    </form>
+      <button class="full" type="button" id="add">Schuld hinzufügen</button>
+      <div class="full meta" id="msg"></div>
+    </div>
   </section>
 
   <section class="card">
@@ -83,20 +84,24 @@ let debts = [];
 try { debts = JSON.parse(localStorage.getItem(KEY)) || []; } catch {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(debts)); } catch {} render(); };
 
-$("form").addEventListener("submit", e => {
-  e.preventDefault();
+function add() {
+  const name = $("name").value.trim(), total = parseFloat($("total").value.replace(",", "."));
+  if (!name || !(total > 0)) { $("msg").textContent = "Bitte Bezeichnung und Gesamtbetrag eintragen."; return; }
+  $("msg").textContent = "";
   debts.push({
     id: Date.now().toString(36),
-    name: $("name").value.trim(),
-    total: parseFloat($("total").value) || 0,
+    name,
+    total,
     paid: 0,
     monthly: parseFloat($("monthly").value) || 0,
     rate: parseFloat($("rate").value) || 0,
     due: $("due").value || ""
   });
-  e.target.reset();
+  ["name","total","monthly","due","rate"].forEach(i => $(i).value = "");
   save();
-});
+}
+$("add").addEventListener("click", add);
+document.querySelectorAll("#form input").forEach(i => i.addEventListener("keydown", e => { if (e.key === "Enter") add(); }));
 
 function pay(id, sign) {
   const d = debts.find(x => x.id === id);
@@ -106,8 +111,10 @@ function pay(id, sign) {
   d.paid = Math.min(d.total, Math.max(0, d.paid + sign * v));
   save();
 }
+let delArm = null;
 function del(id) {
-  if (confirm("Diese Schuld wirklich löschen?")) { debts = debts.filter(x => x.id !== id); save(); }
+  if (delArm !== id) { delArm = id; render(); return; }
+  delArm = null; debts = debts.filter(x => x.id !== id); save();
 }
 
 function render() {
@@ -137,7 +144,7 @@ function render() {
         <input id="amt-${d.id}" type="number" step="0.01" min="0" placeholder="${d.monthly ? d.monthly : "Betrag"}">
         <button class="ghost" onclick="pay('${d.id}',1)">+ Zahlung</button>
         <button class="ghost" onclick="pay('${d.id}',-1)">− Korrektur</button>
-        <button class="ghost" onclick="del('${d.id}')">🗑</button>
+        <button class="ghost" onclick="del('${d.id}')">${delArm === d.id ? "Wirklich löschen?" : "🗑"}</button>
       </div>
     </div>`;
   }).join("") : `<div class="empty">Noch keine Schulden eingetragen 🎉</div>`;
@@ -152,7 +159,7 @@ $("export").onclick = () => {
 $("import").onclick = () => {
   const f = document.createElement("input"); f.type = "file"; f.accept = "application/json";
   f.onchange = async () => {
-    try { const data = JSON.parse(await f.files[0].text()); if (Array.isArray(data)) { debts = data; save(); } } catch { alert("Ungültige Datei"); }
+    try { const data = JSON.parse(await f.files[0].text()); if (Array.isArray(data)) { debts = data; save(); } } catch { $("msg").textContent = "Ungültige Datei"; }
   };
   f.click();
 };
